@@ -1,25 +1,25 @@
 ---
-name: "aws-msk"
-displayName: "AWS MSK"
-description: "Manage and troubleshoot AWS MSK (Managed Streaming for Kafka) clusters with health checks, performance analysis, and operational guidance for developers working with Kafka on AWS."
-keywords: ["msk", "kafka", "aws", "streaming", "managed-kafka", "troubleshooting"]
-author: "stepesch"
+name: "aws-msk-express-broker"
+displayName: "Build and Operate MSK Express Broker"
+description: "Guide developers through creating and operating Amazon MSK Express Brokers with best practices, monitoring strategies, and troubleshooting workflows for common operational challenges."
+keywords: ["aws", "msk", "kafka", "express", "broker", "troubleshooting", "monitoring", "cloudwatch"]
+author: "Stephan Schiller"
 ---
 
-# AWS MSK
+# Build and Operate MSK Express Broker
 
 ## Overview
 
-AWS MSK (Amazon Managed Streaming for Kafka) is a fully managed service that makes it easy to build and run applications that use Apache Kafka to process streaming data. This power provides comprehensive tools and guidance for managing MSK clusters, from initial setup through production operations.
+This power guides you through building and operating Amazon MSK Express Brokers according to AWS best practices. Express brokers are pre-configured for high availability and durability with data distributed across three availability zones, replication set to 3, and minimum in-sync replicas set to 2.
 
-This power helps developers and operators with:
-- **Cluster Health Monitoring** - Quick status checks, broker health, and performance metrics
-- **Connection Configuration** - Getting bootstrap servers, authentication details, and client configs
-- **Troubleshooting** - Diagnosing common issues like consumer lag, broker problems, and connectivity
-- **Capacity Planning** - Analyzing usage and making informed scaling decisions
-- **Operational Tasks** - Updating configurations, scaling brokers, managing security settings
+This power combines the AWS MSK MCP Server tools with comprehensive guidance on:
+- Creating Express broker clusters with proper sizing
+- Implementing client-side and server-side best practices
+- Monitoring cluster health with CloudWatch metrics
+- Troubleshooting common operational challenges (slow clients, replication lag, high CPU usage)
+- Optimizing performance and reliability
 
-Whether you're setting up a new application to connect to MSK, troubleshooting production issues, or optimizing cluster performance, this power provides the workflows and best practices you need.
+Whether you're setting up a new Express broker cluster or troubleshooting an existing one, this power provides the tools and knowledge to operate MSK Express Brokers effectively.
 
 ## Onboarding
 
@@ -27,789 +27,678 @@ Whether you're setting up a new application to connect to MSK, troubleshooting p
 
 Before using this power, ensure you have:
 
-1. **AWS Account Access** - Valid AWS credentials with permissions to access MSK
-2. **AWS CLI Configured** - AWS CLI installed and configured with appropriate profile
-3. **MSK Cluster** - At least one MSK cluster deployed in your AWS account
-4. **IAM Permissions** - Required permissions include:
-   - `kafka:DescribeCluster`
-   - `kafka:ListClusters`
-   - `kafka:GetBootstrapBrokers`
-   - Additional permissions for write operations if using `--allow-writes`
+**AWS Setup:**
+- AWS account with permissions to manage MSK clusters
+- AWS CLI configured with appropriate credentials
+- IAM permissions for MSK operations (create, describe, update clusters)
+- VPC with subnets across multiple availability zones
+
+**Local Environment:**
+- Python 3.10+ installed
+- `uv` package manager installed ([installation guide](https://docs.astral.sh/uv/getting-started/installation/))
+- AWS credentials configured (via `~/.aws/credentials` or environment variables)
+
+**Knowledge:**
+- Basic understanding of Apache Kafka concepts (topics, partitions, brokers)
+- Familiarity with AWS networking (VPCs, subnets, security groups)
 
 ### Installation
 
-This power uses the AWS MSK MCP server, which should already be configured in your Kiro settings.
+The AWS MSK MCP Server is already configured in your workspace. Verify the configuration:
 
-**Verify MCP Server Configuration:**
-
-Check that `awslabs.aws-msk-mcp-server` is enabled in your MCP configuration (`.kiro/settings/mcp.json` or `~/.kiro/settings/mcp.json`).
+1. Check that `mcp.json` contains the AWS MSK MCP Server configuration
+2. Ensure your AWS profile is set correctly in the `AWS_PROFILE` environment variable
+3. Test connectivity by listing your MSK clusters (see Common Workflows below)
 
 ### Configuration
 
 **AWS Profile Setup:**
 
-The MCP server uses AWS credentials from your configured profile. Ensure your AWS profile is set correctly:
-
-```bash
-# Verify AWS profile
-aws configure list --profile your-profile-name
-
-# Test AWS access
-aws kafka list-clusters --region us-east-1 --profile your-profile-name
-```
-
-**Environment Variables:**
-
-The MCP server configuration should include:
-- `AWS_PROFILE`: Your AWS profile name (e.g., "amplifyuser", "default")
-- `AWS_REGION`: Default region for operations (optional, can be specified per-call)
-
-## Common Workflows
-
-### Workflow 1: Get Cluster Overview
-
-**Goal:** Quickly understand what MSK clusters you have and their current status.
-
-**Steps:**
-
-1. List all clusters in a region:
-
-
-```
-Use tool: get_global_info
-Parameters:
-  region: "us-east-1"
-  info_type: "clusters"
-```
-
-2. Review the cluster information returned:
-   - Cluster name and ARN
-   - Current state (ACTIVE, CREATING, UPDATING, etc.)
-   - Kafka version
-   - Number of broker nodes
-   - Instance type
-   - Creation date
-
-**Example Output Interpretation:**
+Replace the placeholder in `mcp.json` with your actual AWS profile name:
 
 ```json
 {
-  "ClusterName": "MSKCluster-production",
-  "State": "ACTIVE",
-  "CurrentVersion": "K2CL7FJ6VNEXJ1",
-  "NumberOfBrokerNodes": 6,
-  "BrokerNodeGroupInfo": {
-    "InstanceType": "kafka.m5.large"
+  "mcpServers": {
+    "awslabs.aws-msk-mcp-server": {
+      "env": {
+        "AWS_PROFILE": "your-actual-profile-name"
+      }
+    }
   }
 }
 ```
 
-This shows a healthy production cluster with 6 brokers running on m5.large instances.
+**AWS Region:**
 
-### Workflow 2: Get Connection Details for Applications
+Most MCP tools require specifying an AWS region. Common regions include:
+- `us-east-1` (US East - N. Virginia)
+- `us-west-2` (US West - Oregon)
+- `eu-west-1` (Europe - Ireland)
+- `ap-southeast-1` (Asia Pacific - Singapore)
 
-**Goal:** Retrieve bootstrap servers and authentication details needed to connect your application to MSK.
+## Best Practices for Express Brokers
 
-**Steps:**
+### Right-Sizing Your Cluster
 
-1. Get detailed cluster information including broker endpoints:
+**Number of Brokers:**
 
-```
-Use tool: get_cluster_info
-Parameters:
-  region: "us-east-1"
-  cluster_arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-cluster/uuid"
-  info_type: "brokers"
-```
+Express brokers come with defined throughput capacity. Size your cluster based on your application's ingress (write) and egress (read) requirements.
 
-2. Extract connection information:
-   - Bootstrap broker endpoints (plaintext, TLS, SASL)
-   - Zookeeper connection string (if needed)
-   - Authentication methods enabled
+**Recommended Throughput Limits per Broker:**
 
-**Example Connection Strings:**
+| Instance Size | Ingress (MBps) | Egress (MBps) |
+|---------------|----------------|---------------|
+| express.m7g.large | 15.6 | 31.2 |
+| express.m7g.xlarge | 31.2 | 62.5 |
+| express.m7g.2xlarge | 62.5 | 125.0 |
+| express.m7g.4xlarge | 124.9 | 249.8 |
+| express.m7g.8xlarge | 250.0 | 500.0 |
+| express.m7g.12xlarge | 375.0 | 750.0 |
+| express.m7g.16xlarge | 500.0 | 1000.0 |
 
-For different authentication methods:
+**Example Sizing:**
+If your application needs 45 MBps ingress and 90 MBps egress, use 3 `express.m7g.large` brokers (each handling 15 MBps ingress and 30 MBps egress).
 
-```bash
-# TLS authentication
-bootstrap.servers=b-1.mycluster.kafka.us-east-1.amazonaws.com:9094,b-2.mycluster.kafka.us-east-1.amazonaws.com:9094
+**Partition Count:**
 
-# SASL/SCRAM authentication
-bootstrap.servers=b-1.mycluster.kafka.us-east-1.amazonaws.com:9096,b-2.mycluster.kafka.us-east-1.amazonaws.com:9096
+For high partition, low throughput use cases, you can pack more partitions per broker if you're not sending traffic across all partitions. However, perform thorough testing to validate cluster health.
 
-# IAM authentication
-bootstrap.servers=b-1.mycluster.kafka.us-east-1.amazonaws.com:9098,b-2.mycluster.kafka.us-east-1.amazonaws.com:9098
+If partition count exceeds maximum allowed values and your cluster becomes overloaded, you'll be prevented from:
+- Creating new topics
+- Adding partitions to existing topics
+- Updating cluster configuration
 
-# Plaintext (unauthenticated)
-bootstrap.servers=b-1.mycluster.kafka.us-east-1.amazonaws.com:9092,b-2.mycluster.kafka.us-east-1.amazonaws.com:9092
-```
+### CPU Usage Guidelines
 
-**Client Configuration Examples:**
+**Target: Keep total CPU utilization under 60%**
 
-Java (with IAM authentication):
-```java
-Properties props = new Properties();
-props.put("bootstrap.servers", "b-1.mycluster.kafka.us-east-1.amazonaws.com:9098");
-props.put("security.protocol", "SASL_SSL");
-props.put("sasl.mechanism", "AWS_MSK_IAM");
-props.put("sasl.jaas.config", "software.amazon.msk.auth.iam.IAMLoginModule required;");
-props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
-```
+Maintain at least 40% available CPU capacity to handle:
+- Planned events (version upgrades, broker restarts)
+- Unplanned events (hardware failures, AZ failures)
+- Partition leadership redistribution
 
-Python (with SASL/SCRAM):
-```python
-from kafka import KafkaProducer
+Total CPU = CPU User + CPU System
 
-producer = KafkaProducer(
-    bootstrap_servers=['b-1.mycluster.kafka.us-east-1.amazonaws.com:9096'],
-    security_protocol='SASL_SSL',
-    sasl_mechanism='SCRAM-SHA-512',
-    sasl_plain_username='your-username',
-    sasl_plain_password='your-password'
-)
-```
+Monitor using CloudWatch metrics: `CpuUser` and `CpuSystem`
 
-### Workflow 3: Troubleshoot Consumer Lag
+### Connection Management
 
-**Goal:** Identify and diagnose consumer lag issues affecting application performance.
+**Connection Limits:**
 
-**Steps:**
+| Authentication Type | Limit |
+|---------------------|-------|
+| IAM Access Control | 3000 TCP connections per broker |
+| IAM (new connections) | 100 per second per broker |
+| Non-IAM | No enforced limit (monitor CPU/memory) |
 
-1. Check broker CPU utilization:
+**Client Configuration:**
 
-```
-Use tool: get_cluster_telemetry
-Parameters:
-  region: "us-east-1"
-  cluster_arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-cluster/uuid"
-  action: "metrics"
-  kwargs: {
-    "metrics": ["CpuUser"],
-    "start_time": "2024-01-01T00:00:00Z",
-    "end_time": "2024-01-01T23:59:59Z",
-    "period": 300,
-    "stat": "Average"
-  }
-```
+Set `reconnect.backoff.ms` on clients to handle connection retries gracefully. Example: Set to 1000 for 1-second retry interval.
 
-2. Check network throughput and consumer lag:
+### Client-Side Best Practices
 
-```
-Use tool: get_cluster_telemetry
-Parameters:
-  region: "us-east-1"
-  cluster_arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-cluster/uuid"
-  action: "metrics"
-  kwargs: {
-    "metrics": ["BytesInPerSec", "BytesOutPerSec", "EstimatedMaxTimeLag"],
-    "start_time": "2024-01-01T00:00:00Z",
-    "end_time": "2024-01-01T23:59:59Z",
-    "period": 300,
-    "stat": "Average"
-  }
-```
+**Producer Configuration:**
+- Set appropriate `retries` value for transient errors
+- Use proper partitioning keys to distribute data evenly
+- Configure `acks=all` for durability (Express brokers handle this efficiently)
+- Monitor producer metrics for throttling
 
-**Note:** The `metrics` parameter accepts an array of metric names, allowing you to query multiple metrics in a single call.
+**Consumer Configuration:**
+- Use static membership protocol for stable consumer groups
+- Set reasonable `session.timeout.ms` (e.g., 4 minutes for 5-minute tolerance)
+- Reduce offset commit frequency to minimize broker load
+- Monitor consumer lag metrics
 
-3. Review partition distribution across brokers:
+### Partition Reassignment
 
-```
-Use tool: get_cluster_info
-Parameters:
-  region: "us-east-1"
-  cluster_arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-cluster/uuid"
-  info_type: "nodes"
-```
+When moving partitions between brokers:
+- **Limit to 20 partitions per reassignment operation**
+- Use `kafka-reassign-partitions.sh` tool
+- Monitor cluster performance during reassignment
+- Plan reassignments during low-traffic periods
 
-**Common Causes and Solutions:**
+## Common Workflows
 
-- **High consumer lag + Low broker CPU** → Consumer application is slow or under-provisioned
-  - Solution: Scale consumer instances, optimize consumer code
-  
-- **High consumer lag + High broker CPU** → Broker capacity issue
-  - Solution: Scale brokers (add nodes or upgrade instance type)
-  
-- **Uneven partition distribution** → Imbalanced load across brokers
-  - Solution: Rebalance partitions or review topic partition strategy
+### Workflow 1: Create Express Broker Cluster
 
-### Workflow 4: Scale Cluster Capacity
-
-**Goal:** Increase cluster capacity by adding brokers, upgrading instance types, or expanding storage.
-
-**Important:** These operations require the `--allow-writes` flag in your MCP server configuration.
-
-**Option A: Add More Brokers**
-
-```
-Use tool: update_broker_count
-Parameters:
-  region: "us-east-1"
-  cluster_arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-cluster/uuid"
-  current_version: "K2CL7FJ6VNEXJ1"
-  target_number_of_broker_nodes: 9
-```
-
-**Option B: Upgrade Broker Instance Type**
-
-```
-Use tool: update_broker_type
-Parameters:
-  region: "us-east-1"
-  cluster_arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-cluster/uuid"
-  current_version: "K2CL7FJ6VNEXJ1"
-  target_instance_type: "kafka.m5.xlarge"
-```
-
-**Option C: Expand Storage**
-
-```
-Use tool: update_broker_storage
-Parameters:
-  region: "us-east-1"
-  cluster_arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-cluster/uuid"
-  current_version: "K2CL7FJ6VNEXJ1"
-  target_broker_ebs_volume_info: '[{"KafkaBrokerNodeId": "1", "VolumeSizeGB": 3000}]'
-```
-
-**Best Practices for Scaling:**
-
-- Always get the current cluster version before making updates
-- Monitor cluster operations with `describe_cluster_operation` tool
-- Scale during low-traffic periods when possible
-- Test scaling operations in non-production environments first
-- Consider auto-scaling storage with provisioned throughput for predictable growth
-
-### Workflow 5: Update Cluster Configuration
-
-**Goal:** Modify Kafka broker configurations for performance tuning or feature enablement.
+**Goal:** Create a new MSK Express broker cluster with proper configuration
 
 **Steps:**
 
-1. Review current configuration:
+1. **Determine cluster requirements:**
+   - Calculate required throughput (ingress/egress)
+   - Choose appropriate broker instance size
+   - Determine number of brokers needed
+   - Identify VPC and subnets (must span 3 AZs)
 
-```
-Use tool: get_configuration_info
-Parameters:
-  region: "us-east-1"
-  action: "describe"
-  arn: "arn:aws:kafka:us-east-1:123456789012:configuration/my-config/uuid"
-```
+2. **Create the cluster using MCP tools:**
 
-2. Create or update configuration:
+Use the `create_cluster` tool with cluster type "SERVERLESS" for Express brokers:
 
-```
-Use tool: create_configuration
-Parameters:
-  region: "us-east-1"
-  name: "my-optimized-config"
-  server_properties: "auto.create.topics.enable=false\ndefault.replication.factor=3\nmin.insync.replicas=2\nlog.retention.hours=168"
-  kafka_versions: ["2.8.1", "3.4.0"]
-```
-
-3. Apply configuration to cluster:
-
-```
-Use tool: update_cluster_configuration
-Parameters:
-  region: "us-east-1"
-  cluster_arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-cluster/uuid"
-  configuration_arn: "arn:aws:kafka:us-east-1:123456789012:configuration/my-optimized-config/uuid"
-  configuration_revision: 1
-  current_version: "K2CL7FJ6VNEXJ1"
-```
-
-**Common Configuration Changes:**
-
-- **Disable auto-topic creation**: `auto.create.topics.enable=false`
-- **Increase retention**: `log.retention.hours=336` (14 days)
-- **Adjust replication**: `default.replication.factor=3`
-- **Set minimum in-sync replicas**: `min.insync.replicas=2`
-- **Compression**: `compression.type=snappy`
-
-### Workflow 6: Configure Authentication and Security
-
-**Goal:** Set up or modify authentication methods and encryption settings.
-
-**Steps:**
-
-1. Review current security settings:
-
-```
-Use tool: get_cluster_info
-Parameters:
-  region: "us-east-1"
-  cluster_arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-cluster/uuid"
-  info_type: "metadata"
-```
-
-2. Update security configuration:
-
-```
-Use tool: update_security
-Parameters:
-  region: "us-east-1"
-  cluster_arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-cluster/uuid"
-  current_version: "K2CL7FJ6VNEXJ1"
-  client_authentication: {
-    "Sasl": {
-      "Scram": {"Enabled": true},
-      "Iam": {"Enabled": true}
+```json
+{
+  "region": "us-east-1",
+  "cluster_name": "my-express-cluster",
+  "cluster_type": "SERVERLESS",
+  "kwargs": {
+    "serverless": {
+      "vpcConfigs": [{
+        "subnetIds": ["subnet-xxx", "subnet-yyy", "subnet-zzz"],
+        "securityGroupIds": ["sg-xxx"]
+      }],
+      "clientAuthentication": {
+        "sasl": {
+          "iam": {"enabled": true}
+        }
+      }
     }
   }
+}
 ```
 
-3. For SCRAM authentication, associate secrets:
+3. **Monitor cluster creation:**
 
+Use `get_cluster_info` to check cluster status:
+
+```json
+{
+  "region": "us-east-1",
+  "cluster_arn": "arn:aws:kafka:us-east-1:123456789012:cluster/my-express-cluster/...",
+  "info_type": "metadata"
+}
 ```
-Use tool: associate_scram_secret
-Parameters:
-  region: "us-east-1"
-  cluster_arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-cluster/uuid"
-  secret_arns: ["arn:aws:secretsmanager:us-east-1:123456789012:secret:AmazonMSK_myuser"]
+
+Wait for cluster state to become "ACTIVE" (typically takes 15-30 minutes).
+
+4. **Verify cluster configuration:**
+
+Check broker endpoints and configuration:
+
+```json
+{
+  "region": "us-east-1",
+  "cluster_arn": "arn:aws:kafka:us-east-1:123456789012:cluster/my-express-cluster/...",
+  "info_type": "brokers"
+}
 ```
 
-**Authentication Methods:**
+### Workflow 2: Monitor Cluster Health
 
-- **IAM** - Best for AWS-native applications, no credential management
-- **SASL/SCRAM** - Username/password stored in AWS Secrets Manager
-- **mTLS** - Certificate-based authentication using AWS Private CA
-- **Unauthenticated** - For development/testing only, not recommended for production
-
-### Workflow 7: Monitor Cluster Health
-
-**Goal:** Proactively monitor cluster health and identify potential issues.
+**Goal:** Establish monitoring for Express broker cluster health and performance
 
 **Key Metrics to Monitor:**
 
-1. **Broker CPU Utilization**
-   - Target: < 60% average
-   - Alert threshold: > 80%
+**Throughput Metrics:**
+- `BytesInPerSec` - Ingress traffic per broker
+- `BytesOutPerSec` - Egress traffic per broker
+- Compare against recommended limits for your instance size
 
-2. **Network Throughput**
-   - Monitor: BytesInPerSec, BytesOutPerSec
-   - Compare against instance type limits
+**CPU Metrics:**
+- `CpuUser` - CPU in user space
+- `CpuSystem` - CPU in kernel space
+- **Target:** Total (User + System) < 60%
 
-3. **Disk Space**
-   - Target: < 70% utilization
-   - Alert threshold: > 85%
+**Connection Metrics:**
+- `ClientConnectionCount` - Active authenticated connections
+- `ConnectionCount` - Total connections (authenticated + unauthenticated + inter-broker)
 
-4. **Consumer Lag**
-   - Target: < 1000 messages or < 5 seconds
-   - Depends on use case
+**Partition Metrics:**
+- `GlobalPartitionCount` - Total partitions across cluster
+- `PartitionCount` - Partitions per broker (including replicas)
+- `LeaderCount` - Leader partitions per broker
 
-5. **Under-Replicated Partitions**
-   - Target: 0
-   - Alert immediately if > 0
+**Consumer Lag Metrics:**
+- `MaxOffsetLag` - Maximum offset lag across partitions
+- `EstimatedMaxTimeLag` - Time estimate to drain lag
+- `SumOffsetLag` - Aggregated offset lag for topic
 
-**Get Available Metrics:**
+**Steps:**
 
+1. **Get available metrics for your cluster:**
+
+```json
+{
+  "region": "us-east-1",
+  "action": "available_metrics",
+  "cluster_arn": "arn:aws:kafka:us-east-1:123456789012:cluster/my-express-cluster/..."
+}
 ```
-Use tool: get_cluster_telemetry
-Parameters:
-  region: "us-east-1"
-  cluster_arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-cluster/uuid"
-  action: "available_metrics"
-```
 
-**Get Current Metrics:**
+2. **Retrieve current metrics:**
 
-```
-Use tool: get_cluster_telemetry
-Parameters:
-  region: "us-east-1"
-  cluster_arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-cluster/uuid"
-  action: "metrics"
-  kwargs: {
-    "metrics": ["CpuUser", "KafkaDataLogsDiskUsed", "HeapMemoryAfterGC"],
-    "start_time": "2024-01-01T15:00:00Z",
-    "end_time": "2024-01-01T16:00:00Z",
-    "period": 300,
-    "stat": "Average"
+```json
+{
+  "region": "us-east-1",
+  "action": "metrics",
+  "cluster_arn": "arn:aws:kafka:us-east-1:123456789012:cluster/my-express-cluster/...",
+  "kwargs": {
+    "metric_name": "CpuUser",
+    "start_time": "2024-01-15T00:00:00Z",
+    "end_time": "2024-01-15T23:59:59Z",
+    "period": 300
   }
+}
 ```
 
-**Parameters:**
-- `metrics`: Array of metric names (e.g., ["CpuUser", "BytesInPerSec"])
-- `start_time`: Start time in ISO 8601 format (e.g., "2024-01-01T15:00:00Z")
-- `end_time`: End time in ISO 8601 format
-- `period`: Data point interval in seconds (e.g., 300 for 5-minute intervals)
-- `stat`: Statistic type ("Average", "Sum", "Maximum", "Minimum")
+3. **Set up CloudWatch alarms:**
 
-**Enable Enhanced Monitoring:**
+Create alarms for critical thresholds:
+- CPU utilization > 60%
+- BytesInPerSec approaching broker limit
+- MaxOffsetLag > acceptable threshold
+- ClientConnectionCount approaching 3000 (for IAM)
 
+### Workflow 3: Update Cluster Configuration
+
+**Goal:** Modify cluster settings or scale brokers
+
+**Scaling Brokers (Serverless/Express):**
+
+For Express brokers, scaling is automatic based on throughput. However, you can update other configurations:
+
+1. **Get current cluster version:**
+
+```json
+{
+  "region": "us-east-1",
+  "cluster_arn": "arn:aws:kafka:us-east-1:123456789012:cluster/my-express-cluster/...",
+  "info_type": "metadata"
+}
 ```
-Use tool: update_monitoring
-Parameters:
-  region: "us-east-1"
-  cluster_arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-cluster/uuid"
-  current_version: "K2CL7FJ6VNEXJ1"
-  enhanced_monitoring: "PER_TOPIC_PER_BROKER"
-  open_monitoring: {
-    "Prometheus": {
-      "JmxExporter": {"EnabledInBroker": true},
-      "NodeExporter": {"EnabledInBroker": true}
+
+Note the `currentVersion` field.
+
+2. **Update monitoring settings:**
+
+```json
+{
+  "region": "us-east-1",
+  "cluster_arn": "arn:aws:kafka:us-east-1:123456789012:cluster/my-express-cluster/...",
+  "current_version": "K3AEGXETSR30VB",
+  "enhanced_monitoring": "PER_BROKER",
+  "open_monitoring": {
+    "prometheus": {
+      "jmxExporter": {"enabledInBroker": true},
+      "nodeExporter": {"enabledInBroker": true}
     }
   }
+}
+```
+
+3. **Monitor the update operation:**
+
+```json
+{
+  "region": "us-east-1",
+  "cluster_operation_arn": "arn:aws:kafka:us-east-1:123456789012:cluster-operation/..."
+}
 ```
 
 ## Troubleshooting
 
-### MCP Server Connection Issues
+### Slow Running Clients
 
-**Problem:** MCP server won't start or connect
+**Problem:** Clients experiencing slow produce or consume operations
 
-**Symptoms:**
-- Error: "Connection refused"
-- Error: "Token has expired and refresh failed"
-- Server not responding
+**Metrics to Check:**
 
-**Solutions:**
+1. **Producer Latency:**
+   - `ProduceTotalTimeMsMean` - Mean produce time
+   - `ProduceRequestQueueTimeMsMean` - Time in request queue
+   - `ProduceResponseSendTimeMsMean` - Time sending response
 
-1. **Verify AWS credentials:**
-   ```bash
-   aws sts get-caller-identity --profile your-profile-name
-   ```
+2. **Consumer Latency:**
+   - `FetchConsumerTotalTimeMsMean` - Total fetch time
+   - `FetchConsumerRequestQueueTimeMsMean` - Time in request queue
+   - `FetchConsumerLocalTimeMsMean` - Processing time at leader
 
-2. **Refresh SSO token (if using AWS SSO):**
-   ```bash
-   aws sso login --profile your-profile-name
-   ```
-
-3. **Check MCP server configuration:**
-   - Verify `AWS_PROFILE` environment variable is set correctly
-   - Ensure profile exists in `~/.aws/config`
-   - Confirm AWS CLI is installed and accessible
-
-4. **Restart Kiro:**
-   - MCP servers reconnect automatically on config changes
-   - Or manually reconnect from MCP Server view in Kiro
-
-### Cluster Operation Failures
-
-**Error:** "Cluster is in UPDATING state"
-
-**Cause:** Another operation is in progress
-
-**Solution:**
-1. Check operation status:
-   ```
-   Use tool: describe_cluster_operation
-   Parameters:
-     region: "us-east-1"
-     cluster_operation_arn: "arn:aws:kafka:us-east-1:123456789012:cluster-operation/uuid"
-   ```
-
-2. Wait for current operation to complete
-3. Operations typically take 15-30 minutes
-4. Retry your operation after completion
-
-**Error:** "Invalid cluster version"
-
-**Cause:** Cluster version has changed since you retrieved it
-
-**Solution:**
-1. Get current cluster version:
-   ```
-   Use tool: get_cluster_info
-   Parameters:
-     region: "us-east-1"
-     cluster_arn: "your-cluster-arn"
-     info_type: "metadata"
-   ```
-
-2. Use the `CurrentVersion` field in your update operation
-3. Cluster version changes with each successful update
-
-### Permission Errors
-
-**Error:** "User is not authorized to perform: kafka:DescribeCluster"
-
-**Cause:** Insufficient IAM permissions
-
-**Solution:**
-
-1. Verify your IAM permissions include required MSK actions
-2. Common required permissions:
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [{
-       "Effect": "Allow",
-       "Action": [
-         "kafka:DescribeCluster",
-         "kafka:ListClusters",
-         "kafka:GetBootstrapBrokers",
-         "kafka:DescribeClusterV2",
-         "kafka:ListNodes"
-       ],
-       "Resource": "*"
-     }]
-   }
-   ```
-
-3. For write operations, add:
-   ```json
-   "kafka:UpdateBrokerCount",
-   "kafka:UpdateBrokerType",
-   "kafka:UpdateBrokerStorage",
-   "kafka:UpdateClusterConfiguration",
-   "kafka:UpdateMonitoring",
-   "kafka:UpdateSecurity"
-   ```
-
-### Connection Issues from Applications
-
-**Problem:** Application can't connect to MSK cluster
+3. **Network Metrics:**
+   - `NetworkRxErrors` / `NetworkTxErrors` - Network errors
+   - `NetworkRxDropped` / `NetworkTxDropped` - Dropped packets
+   - `RequestTime` - Average request processing time
 
 **Diagnostic Steps:**
 
-1. **Verify network connectivity:**
-   - Check security group rules allow traffic on Kafka ports
-   - Verify application is in same VPC or has VPC peering/VPN
-   - Test connectivity: `telnet broker-endpoint 9092`
-
-2. **Check authentication configuration:**
-   - Verify correct authentication method (IAM, SASL, mTLS)
-   - Confirm credentials are valid
-   - Check client library supports authentication method
-
-3. **Review bootstrap servers:**
-   - Ensure using correct port for authentication method
-   - Port 9092: Plaintext
-   - Port 9094: TLS
-   - Port 9096: SASL/SCRAM
-   - Port 9098: IAM
-
-4. **Check cluster state:**
+1. Check if broker CPU is under 60%:
    ```
-   Use tool: get_cluster_info
-   Parameters:
-     region: "us-east-1"
-     cluster_arn: "your-cluster-arn"
-     info_type: "metadata"
+   Monitor: CpuUser + CpuSystem < 60%
    ```
-   - Cluster must be in ACTIVE state
 
-### Performance Issues
+2. Verify throughput is within limits:
+   ```
+   Check: BytesInPerSec and BytesOutPerSec per broker
+   Compare against instance size limits
+   ```
 
-**Problem:** Slow message production or consumption
+3. Check for throttling:
+   ```
+   Monitor: ProduceThrottleTime, FetchThrottleTime
+   If > 0, clients are being throttled
+   ```
 
-**Diagnostic Approach:**
+4. Examine network processor idle time:
+   ```
+   Monitor: NetworkProcessorAvgIdlePercent
+   Low values indicate network thread saturation
+   ```
 
-1. **Check broker metrics:**
-   - CPU utilization (should be < 80%)
-   - Network throughput (check against instance limits)
-   - Disk I/O (check for throttling)
+**Solutions:**
 
-2. **Review partition distribution:**
-   - Ensure partitions are evenly distributed
-   - Check for hot partitions (uneven load)
+- **If CPU is high:** Scale to larger instance size or add more brokers
+- **If throttled:** Reduce client request rate or increase cluster capacity
+- **If network saturated:** Optimize batch sizes, reduce connection count
+- **If request queue time high:** Increase broker capacity or reduce load
 
-3. **Analyze consumer lag:**
-   - Identify slow consumers
-   - Check consumer group rebalancing
+### Replication Lag
 
-4. **Consider scaling:**
-   - Add brokers if CPU/network constrained
-   - Upgrade instance type for better performance
-   - Increase storage if disk I/O is bottleneck
+**Problem:** Follower replicas falling behind leader partitions
 
-**Get best practices recommendations:**
+**Metrics to Check:**
 
-```
-Use tool: get_cluster_best_practices
-Parameters:
-  instance_type: "kafka.m5.large"
-  number_of_brokers: 6
-```
+1. **Replication Throughput:**
+   - `ReplicationBytesInPerSec` - Bytes received from other brokers
+   - `ReplicationBytesOutPerSec` - Bytes sent to other brokers
 
-## Best Practices
+2. **Follower Fetch Performance:**
+   - `FetchFollowerTotalTimeMsMean` - Total follower fetch time
+   - `FetchFollowerLocalTimeMsMean` - Processing time at leader
+   - `FetchFollowerRequestQueueTimeMsMean` - Time in request queue
 
-### Cluster Design
+3. **Partition Status:**
+   - `UnderReplicatedPartitions` - Should be 0 in healthy cluster
+   - `LeaderCount` - Distribution of leaders across brokers
 
-- **Use at least 3 brokers** for production workloads (enables replication)
-- **Distribute brokers across multiple AZs** for high availability
-- **Size brokers appropriately** - start with m5.large or m5.xlarge for production
-- **Plan for growth** - storage can be expanded but not reduced
-- **Use provisioned throughput** for predictable I/O performance
+**Diagnostic Steps:**
 
-### Security
+1. Check for under-replicated partitions:
+   ```
+   Monitor: UnderReplicatedPartitions metric
+   If > 0, investigate cause
+   ```
 
-- **Enable encryption in transit** (TLS) for all production clusters
-- **Enable encryption at rest** using AWS KMS
-- **Use IAM authentication** when possible for AWS-native applications
-- **Implement least-privilege access** with IAM policies
-- **Rotate SCRAM credentials** regularly if using username/password auth
-- **Use private subnets** and security groups to restrict network access
+2. Verify broker health:
+   ```
+   Check all brokers are ACTIVE
+   Monitor CPU, memory, and disk usage
+   ```
 
-### Configuration
+3. Check for volume saturation (after volume replacement):
+   ```
+   Monitor: Disk throughput approaching 250 MiB/s limit
+   This can impact caught-up partitions
+   ```
 
-- **Disable auto-topic creation** in production (`auto.create.topics.enable=false`)
-- **Set appropriate replication factor** (3 for production)
-- **Configure min.insync.replicas** (typically replication factor - 1)
-- **Set retention policies** based on data requirements
-- **Enable compression** (snappy or lz4) to reduce storage and network usage
-- **Test configuration changes** in non-production environments first
+4. Examine leader distribution:
+   ```
+   Monitor: LeaderCount per broker
+   Uneven distribution can cause hotspots
+   ```
 
-### Monitoring
+**Solutions:**
 
-- **Enable enhanced monitoring** (PER_TOPIC_PER_BROKER level)
-- **Set up CloudWatch alarms** for critical metrics
-- **Monitor consumer lag** continuously
-- **Track under-replicated partitions** (should always be 0)
-- **Review broker metrics** regularly (CPU, network, disk)
-- **Enable Prometheus exporters** for detailed metrics
+- **Volume replacement recovery:** Wait for replication to complete; consider temporarily reducing producer traffic
+- **Uneven leader distribution:** Trigger preferred leader election
+- **Broker overload:** Scale cluster or redistribute partitions
+- **Network issues:** Check security groups, VPC configuration, and inter-AZ connectivity
 
-### Operations
+### High CPU Usage
 
-- **Always get current cluster version** before updates
-- **Perform updates during maintenance windows** when possible
-- **Monitor operations** until completion
-- **Test scaling operations** in non-production first
-- **Document cluster configurations** and changes
-- **Implement backup strategies** for critical topics
-- **Plan for disaster recovery** with cross-region replication if needed
+**Problem:** One or more brokers showing CPU utilization > 60%
 
-### Cost Optimization
+**Common Causes and Solutions:**
 
-- **Right-size broker instances** based on actual usage
-- **Use tiered storage** for older data (if available)
-- **Set appropriate retention policies** to avoid unnecessary storage costs
-- **Monitor and delete unused topics**
-- **Consider reserved capacity** for predictable workloads
-- **Review CloudWatch metrics retention** settings
+**1. High Incoming/Outgoing Traffic**
 
-## MCP Config Placeholders
+**Symptoms:**
+- `BytesInPerSec` or `BytesOutPerSec` metrics are high or skewed
+- CPU correlates with traffic spikes
 
-**IMPORTANT:** Before using this power, replace the following placeholder in `mcp.json` with your actual value:
+**Diagnostic Steps:**
+- Check if traffic exceeds recommended throughput limits
+- Verify partition distribution across brokers
+- Examine producer partitioning key for even distribution
 
-- **`YOUR_AWS_PROFILE_NAME`**: Your AWS CLI profile name that has access to MSK clusters.
-  - **How to get it:**
-    1. List your AWS profiles: `aws configure list-profiles`
-    2. Choose the profile that has MSK access (e.g., "default", "amplifyuser", "production")
-    3. Replace `YOUR_AWS_PROFILE_NAME` in mcp.json with your profile name
-    4. Verify access: `aws kafka list-clusters --region us-east-1 --profile your-profile-name`
+**Solutions:**
+- Update producer partitioning logic to distribute data evenly
+- Scale to larger instance size
+- Add more brokers to distribute load
+- Reduce consumer group offset commit frequency
 
-**After replacing the placeholder, your mcp.json should look like:**
-```json
-{
-  "mcpServers": {
-    "awslabs.aws-msk-mcp-server": {
-      "command": "uvx",
-      "args": [
-        "awslabs.aws-msk-mcp-server@latest",
-        "--allow-writes"
-      ],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR",
-        "AWS_PROFILE": "amplifyuser"
-      },
-      "disabled": false
-    }
-  }
-}
-```
+**2. Excessive Partition Count**
 
-## Configuration
+**Symptoms:**
+- `PartitionCount` per broker exceeds recommended values
+- Performance degradation across cluster
+- Unable to create topics or add partitions
 
-### MCP Server Configuration
+**Diagnostic Steps:**
+- Check `PartitionCount` and `GlobalPartitionCount` metrics
+- Calculate partitions per broker (including replicas)
 
-The AWS MSK MCP server should be configured in your Kiro MCP settings with:
+**Solutions:**
+- Add more brokers to distribute partitions
+- Consolidate topics with low traffic
+- Use `kafka-reassign-partitions.sh` to rebalance (max 20 partitions per operation)
+- Scale to larger instance size
 
-```json
-{
-  "mcpServers": {
-    "awslabs.aws-msk-mcp-server": {
-      "command": "uvx",
-      "args": [
-        "awslabs.aws-msk-mcp-server@latest",
-        "--allow-writes"
-      ],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR",
-        "AWS_PROFILE": "your-profile-name"
-      },
-      "disabled": false
-    }
-  }
-}
-```
+**3. High Connection Count**
 
-**Configuration Options:**
+**Symptoms:**
+- `ClientConnectionCount` or `ConnectionCount` metrics are high
+- `IAMTooManyConnections` > 0 (for IAM auth)
+- CPU spikes correlate with connection activity
 
-- `--allow-writes`: Enables write operations (update, create, delete). Remove for read-only access.
-- `AWS_PROFILE`: Your AWS CLI profile name
-- `FASTMCP_LOG_LEVEL`: Logging level (ERROR, INFO, DEBUG)
+**Diagnostic Steps:**
+- Monitor `ConnectionCreationRate` and `ConnectionCloseRate`
+- Check for connection churn (frequent connect/disconnect)
+- Verify client `reconnect.backoff.ms` configuration
 
-### AWS Regions
+**Solutions:**
+- Reduce number of client connections
+- Implement connection pooling in applications
+- Increase `reconnect.backoff.ms` on clients (e.g., 1000ms)
+- Scale to larger instance size
+- Consolidate consumer groups
 
-The MCP server works with any AWS region where MSK is available. Specify the region in each tool call:
+**4. Skewed Data Distribution**
 
-```
-region: "us-east-1"
-region: "eu-west-1"
-region: "ap-southeast-1"
-```
+**Symptoms:**
+- CPU high on specific brokers, normal on others
+- `LeaderCount` unevenly distributed
+- `BytesInPerSec` varies significantly between brokers
 
-### Required IAM Permissions
+**Diagnostic Steps:**
+- Check partition distribution using `kafka-topics.sh --describe`
+- Verify leader distribution across brokers
+- Examine producer partitioning strategy
 
-Minimum permissions for read-only access:
+**Solutions:**
+- Rebalance partitions across brokers
+- Fix producer partitioning key to use round-robin
+- Trigger preferred leader election
+- Reassign partitions to balance load
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [{
-    "Effect": "Allow",
-    "Action": [
-      "kafka:DescribeCluster",
-      "kafka:DescribeClusterV2",
-      "kafka:ListClusters",
-      "kafka:ListClustersV2",
-      "kafka:GetBootstrapBrokers",
-      "kafka:ListNodes",
-      "kafka:DescribeConfiguration",
-      "kafka:ListConfigurations",
-      "kafka:ListConfigurationRevisions",
-      "kafka:DescribeClusterOperation",
-      "kafka:ListClusterOperations",
-      "kafka:ListTagsForResource",
-      "cloudwatch:GetMetricData",
-      "cloudwatch:ListMetrics"
-    ],
-    "Resource": "*"
-  }]
-}
-```
+**5. Open Monitoring with Prometheus**
 
-Additional permissions for write operations (when using `--allow-writes`):
+**Symptoms:**
+- CPU increased after enabling Prometheus monitoring
+- High metric emission rate
 
-```json
-{
-  "Effect": "Allow",
-  "Action": [
-    "kafka:CreateCluster",
-    "kafka:CreateClusterV2",
-    "kafka:UpdateBrokerCount",
-    "kafka:UpdateBrokerType",
-    "kafka:UpdateBrokerStorage",
-    "kafka:UpdateClusterConfiguration",
-    "kafka:UpdateMonitoring",
-    "kafka:UpdateSecurity",
-    "kafka:CreateConfiguration",
-    "kafka:UpdateConfiguration",
-    "kafka:TagResource",
-    "kafka:UntagResource",
-    "kafka:RebootBroker",
-    "kafka:PutClusterPolicy",
-    "kafka:CreateVpcConnection",
-    "kafka:DeleteVpcConnection"
-  ],
-  "Resource": "*"
-}
-```
+**Diagnostic Steps:**
+- Check Prometheus scrape interval configuration
+- Monitor metric collection frequency
+
+**Solutions:**
+- Increase scrape interval to minimum 1 minute per broker
+- Disable unnecessary metric exporters
+- Use PER_BROKER monitoring level instead of PER_TOPIC_PER_PARTITION
+
+**6. Broker Maintenance or Failures**
+
+**Symptoms:**
+- CPU spike during cluster operations
+- Recent version upgrade or broker restart
+- Partition leadership redistribution
+
+**Diagnostic Steps:**
+- Check cluster operation history
+- Monitor for recent broker restarts or failures
+- Verify partition leadership changes
+
+**Solutions:**
+- Wait for maintenance to complete (CPU will normalize)
+- Ensure 40% CPU headroom for future operations
+- Plan maintenance during low-traffic periods
+
+### Consumer Group Stuck in PreparingRebalance
+
+**Problem:** Consumer group perpetually rebalancing, unable to consume messages
+
+**Cause:** Apache Kafka issue KAFKA-9752 (affects versions 2.3.1 and 2.4.1)
+
+**Solutions:**
+
+**Option 1: Upgrade Cluster (Recommended)**
+- Upgrade to Amazon MSK bug-fix version 2.4.1.1 or later
+- Use `update_cluster_configuration` or version upgrade tools
+
+**Option 2: Implement Static Membership Protocol**
+- Configure clients with `group.instance.id`
+- Set `session.timeout.ms` to allow recovery time (e.g., 240000 for 4 minutes)
+- Prevents premature rebalancing during consumer restarts
+
+**Option 3: Reboot Coordinating Broker**
+- Identify coordinator broker for stuck consumer group
+- Reboot the specific broker node
+- Monitor consumer group state after reboot
+
+### Failed Authentication: Too Many Connects
+
+**Problem:** IAM clients receiving "Too many connects" authentication errors
+
+**Cause:** Broker protecting itself from aggressive connection rate (> 100 connections/second)
+
+**Metrics to Check:**
+- `IAMNumberOfConnectionRequests` - IAM auth requests per second
+- `IAMTooManyConnections` - Connections attempted beyond limit
+
+**Solutions:**
+- Increase `reconnect.backoff.ms` on clients (e.g., 1000-5000ms)
+- Implement exponential backoff for connection retries
+- Reduce number of concurrent client connections
+- Stagger client startup times
+- Use connection pooling
+
+### Disk Space Running Low
+
+**Problem:** Partitions going offline or replicas out of sync due to low disk space
+
+**Metrics to Check:**
+- `StorageUsed` - Total storage across cluster
+
+**Solutions:**
+
+**Adjust Data Retention:**
+- Reduce `retention.ms` for topics
+- Reduce `retention.bytes` for topics
+- Enable log compaction for appropriate topics
+
+**Monitor and Alert:**
+- Set CloudWatch alarms for storage thresholds
+- Monitor storage growth trends
+- Plan capacity increases proactively
+
+**For Express Brokers:**
+- Storage scales automatically with throughput
+- Ensure retention policies align with storage capacity
+
+## MCP Tools Reference
+
+### Cluster Management Tools
+
+**create_cluster** - Create new MSK cluster (provisioned or serverless)
+- Parameters: region, cluster_name, cluster_type, kwargs
+- Use cluster_type="SERVERLESS" for Express brokers
+
+**get_cluster_info** - Get comprehensive cluster information
+- Parameters: region, cluster_arn, info_type (metadata, brokers, nodes, etc.)
+- Returns cluster state, configuration, and operational details
+
+**describe_cluster_operation** - Check status of cluster operations
+- Parameters: region, cluster_operation_arn
+- Monitor create, update, or delete operations
+
+### Monitoring Tools
+
+**get_cluster_telemetry** - Retrieve CloudWatch metrics
+- Parameters: region, action (metrics, available_metrics), cluster_arn, kwargs
+- Access all Express broker metrics
+
+**get_cluster_best_practices** - Get sizing and configuration recommendations
+- Parameters: instance_type, number_of_brokers
+- Returns best practices for cluster configuration
+
+### Configuration Tools
+
+**update_monitoring** - Update monitoring settings
+- Parameters: region, cluster_arn, current_version, enhanced_monitoring
+- Configure CloudWatch and Prometheus monitoring levels
+
+**update_security** - Update security settings
+- Parameters: region, cluster_arn, current_version, client_authentication, encryption_info
+- Modify authentication and encryption configuration
+
+**create_configuration** - Create MSK configuration
+- Parameters: region, name, server_properties, kafka_versions
+- Define custom Kafka broker configurations
+
+**update_configuration** - Update existing configuration
+- Parameters: region, arn, server_properties
+- Modify broker configuration settings
+
+### VPC and Networking Tools
+
+**create_vpc_connection** - Create VPC connection
+- Parameters: region, cluster_arn, vpc_id, subnet_ids, security_groups
+- Enable cross-VPC access to cluster
+
+**describe_vpc_connection** - Get VPC connection details
+- Parameters: region, vpc_connection_arn
+- Check VPC connection status and configuration
+
+### Security Tools
+
+**associate_scram_secret** - Associate SCRAM secrets
+- Parameters: region, cluster_arn, secret_arns
+- Configure SASL/SCRAM authentication
+
+**put_cluster_policy** - Attach resource policy
+- Parameters: region, cluster_arn, policy
+- Define cluster access policies
+
+**list_customer_iam_access** - List IAM access information
+- Parameters: region, cluster_arn
+- View IAM-based access configuration
+
+### Operational Tools
+
+**reboot_broker** - Reboot specific brokers
+- Parameters: region, cluster_arn, broker_ids
+- Restart brokers for maintenance or troubleshooting
+
+**tag_resource** / **untag_resource** - Manage resource tags
+- Parameters: region, resource_arn, tags/tag_keys
+- Organize and categorize MSK resources
+
+## Additional Resources
+
+- [AWS MSK Express Best Practices](https://docs.aws.amazon.com/msk/latest/developerguide/bestpractices-express.html)
+- [AWS MSK Troubleshooting Guide](https://docs.aws.amazon.com/msk/latest/developerguide/troubleshooting.html)
+- [AWS MSK Express Metrics](https://docs.aws.amazon.com/msk/latest/developerguide/metrics-details-express.html)
+- [AWS MSK MCP Server Documentation](https://awslabs.github.io/mcp/servers/aws-msk-mcp-server)
+- [Apache Kafka Documentation](https://kafka.apache.org/documentation/)
 
 ---
 
-**Package:** `awslabs.aws-msk-mcp-server`
 **MCP Server:** awslabs.aws-msk-mcp-server
+**Installation:** `uvx awslabs.aws-msk-mcp-server@latest --allow-writes`
