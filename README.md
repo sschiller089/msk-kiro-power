@@ -43,10 +43,27 @@ Once installed, the power provides:
 - **Troubleshooting** for common issues like slow clients, replication lag, and high CPU
 - **MCP tools** for interacting with AWS MSK clusters
 
+## Included Hooks
+
+This power includes a Kiro hook for automated health monitoring:
+
+**MSK Post-Cluster Health Check** (`.kiro/hooks/msk-post-cluster-health-check.json`)
+
+Automatically prompts a health check after MSK cluster operations complete. When Kiro detects cluster creation or activation patterns in the conversation, it offers to:
+
+1. Check cluster status and metadata
+2. Verify broker endpoints are accessible
+3. Review current CPU and throughput metrics
+4. Confirm monitoring is properly configured
+
+This helps ensure new clusters are healthy before you start using them.
+
 ## Next Steps
 
 1. Test the power locally using the installation steps above
 2. Verify the documentation is clear and complete
 3. Test the MCP tools with your AWS account
 4. Share the power via GitHub repository or submit to Kiro recommended powers
+
+
 
