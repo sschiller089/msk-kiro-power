@@ -1,0 +1,22 @@
+{
+  "name": "MSK Post-Cluster Health Check",
+  "description": "Automatically prompts health monitoring after MSK cluster operations complete",
+  "trigger": {
+    "type": "onAgentComplete"
+  },
+  "condition": {
+    "type": "messageContains",
+    "patterns": [
+      "create_cluster",
+      "cluster_type",
+      "SERVERLESS",
+      "express",
+      "cluster is now ACTIVE",
+      "cluster creation"
+    ]
+  },
+  "action": {
+    "type": "sendMessage",
+    "message": "The MSK cluster operation appears complete. Let me verify the cluster health:\n\n1. Check cluster status and metadata\n2. Verify broker endpoints are accessible\n3. Review current CPU and throughput metrics\n4. Confirm monitoring is properly configured\n\nWould you like me to run through this health check? Please provide the cluster ARN and region if not already in context."
+  }
+}
