@@ -42,3 +42,11 @@ Once installed, the power provides:
 - **Workflows** for creating clusters, monitoring health, and updating configurations
 - **Troubleshooting** for common issues like slow clients, replication lag, and high CPU
 - **MCP tools** for interacting with AWS MSK clusters
+
+## Next Steps
+
+1. Test the power locally using the installation steps above
+2. Verify the documentation is clear and complete
+3. Test the MCP tools with your AWS account
+4. Share the power via GitHub repository or submit to Kiro recommended powers
+
