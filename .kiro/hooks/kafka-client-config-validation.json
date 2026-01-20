@@ -1,0 +1,22 @@
+{
+  "name": "Kafka Client Config Validation",
+  "description": "Validates Kafka client configurations against MSK Express best practices on file save",
+  "trigger": {
+    "type": "onFileSave",
+    "filePatterns": [
+      "**/*kafka*.properties",
+      "**/*producer*.properties",
+      "**/*consumer*.properties",
+      "**/*kafka*.yaml",
+      "**/*kafka*.yml",
+      "**/*producer*.yaml",
+      "**/*consumer*.yaml",
+      "**/application*.properties",
+      "**/application*.yaml"
+    ]
+  },
+  "action": {
+    "type": "sendMessage",
+    "message": "I noticed you saved a Kafka client configuration file. Let me validate it against MSK Express best practices:\n\n**Producer checks:**\n- `acks` should be 'all' for durability\n- `retries` should be set (recommended: 2147483647 for infinite)\n- `enable.idempotence` should be true\n\n**Consumer checks:**\n- `session.timeout.ms` should allow recovery time (recommended: 45000+)\n- `group.instance.id` should be set for static membership\n- `auto.offset.reset` should be explicitly configured\n\n**Connection checks:**\n- `reconnect.backoff.ms` should be set (recommended: 1000+)\n- `reconnect.backoff.max.ms` should be set (recommended: 10000+)\n\nShall I review the saved file and suggest improvements?"
+  }
+}
