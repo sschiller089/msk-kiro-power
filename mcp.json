@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "awslabs.aws-msk-mcp-server": {
+      "command": "uvx",
+      "args": [
+        "awslabs.aws-msk-mcp-server@latest",
+        "--allow-writes"
+      ],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR",
+        "AWS_PROFILE": "YOUR_AWS_PROFILE_NAME"
+      },
+      "disabled": false
+    }
+  }
+}
