@@ -8,6 +8,16 @@ author: "Stephan Schiller"
 
 # Build and Operate MSK Express Broker
 
+## Prerequisites
+
+Before using this power, configure your AWS profile:
+
+1. Open the power's `mcp.json` file
+2. Replace `YOUR_AWS_PROFILE_NAME` with your AWS profile name
+3. Save and restart the MCP server
+
+Required IAM permissions: `kafka:Describe*`, `kafka:List*`, `cloudwatch:GetMetricData`
+
 ## Overview
 
 This power guides you through building and operating Amazon MSK Express Brokers according to AWS best practices. Express brokers are pre-configured for high availability and durability with data distributed across three availability zones, replication set to 3, and minimum in-sync replicas set to 2.
