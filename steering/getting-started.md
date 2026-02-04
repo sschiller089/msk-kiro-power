@@ -94,11 +94,15 @@ Perform a quick health check by retrieving key metrics.
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "CpuUser",
+    "metrics": ["CpuUser", "CpuSystem"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
 ```
+
+**Note:** Replace `<1-hour-ago-ISO8601>` and `<now-ISO8601>` with actual ISO 8601 timestamps (e.g., `2026-02-04T14:00:00Z`).
 
 If metrics return successfully, your cluster is operational and ready for monitoring.
 

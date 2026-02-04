@@ -78,9 +78,16 @@ Info types: `metadata`, `brokers`, `nodes`, `operations`, `all`
   "region": "us-east-1",
   "action": "metrics",
   "cluster_arn": "<arn>",
-  "kwargs": {"metric_name": "CpuUser", "period": 300}
+  "kwargs": {
+    "metrics": ["CpuUser", "CpuSystem"],
+    "start_time": "2026-02-04T14:00:00Z",
+    "end_time": "2026-02-04T15:00:00Z",
+    "period": 300
+  }
 }
 ```
+
+**Note:** `start_time` and `end_time` are required. Use ISO 8601 format. The `metrics` parameter accepts an array of metric names.
 
 **get_cluster_best_practices** - Get sizing recommendations
 ```json

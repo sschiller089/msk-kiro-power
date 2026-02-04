@@ -24,31 +24,22 @@ CPU headroom is critical for Express Brokers to handle:
 - Unplanned events (hardware failures, AZ failures)
 - Partition leadership redistribution
 
-**Action:** Use `get_cluster_telemetry` tool for CpuUser
+**Action:** Use `get_cluster_telemetry` tool for CPU metrics
 ```json
 {
   "region": "us-east-1",
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "CpuUser",
+    "metrics": ["CpuUser", "CpuSystem"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
 ```
 
-**Action:** Use `get_cluster_telemetry` tool for CpuSystem
-```json
-{
-  "region": "us-east-1",
-  "action": "metrics",
-  "cluster_arn": "<your-cluster-arn>",
-  "kwargs": {
-    "metric_name": "CpuSystem",
-    "period": 300
-  }
-}
-```
+**Note:** Replace timestamps with actual ISO 8601 values (e.g., `2026-02-04T14:00:00Z`).
 
 **Evaluation:**
 - Calculate: `Total CPU = CpuUser + CpuSystem`
@@ -72,20 +63,9 @@ Excessive partitions cause:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "GlobalPartitionCount",
-    "period": 300
-  }
-}
-```
-
-**Action:** Check per-broker partition count
-```json
-{
-  "region": "us-east-1",
-  "action": "metrics",
-  "cluster_arn": "<your-cluster-arn>",
-  "kwargs": {
-    "metric_name": "PartitionCount",
+    "metrics": ["GlobalPartitionCount", "PartitionCount"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -100,27 +80,16 @@ Excessive partitions cause:
 
 **Target: Throughput within instance capacity**
 
-**Action:** Use `get_cluster_telemetry` tool for ingress
+**Action:** Use `get_cluster_telemetry` tool
 ```json
 {
   "region": "us-east-1",
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "BytesInPerSec",
-    "period": 300
-  }
-}
-```
-
-**Action:** Use `get_cluster_telemetry` tool for egress
-```json
-{
-  "region": "us-east-1",
-  "action": "metrics",
-  "cluster_arn": "<your-cluster-arn>",
-  "kwargs": {
-    "metric_name": "BytesOutPerSec",
+    "metrics": ["BytesInPerSec", "BytesOutPerSec"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -150,7 +119,9 @@ Compare per-broker throughput against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "ClientConnectionCount",
+    "metrics": ["ClientConnectionCount", "ConnectionCreationRate"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -172,7 +143,9 @@ Compare per-broker throughput against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "UnderReplicatedPartitions",
+    "metrics": ["UnderReplicatedPartitions"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -193,7 +166,9 @@ Compare per-broker throughput against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "MaxOffsetLag",
+    "metrics": ["MaxOffsetLag", "EstimatedMaxTimeLag"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }

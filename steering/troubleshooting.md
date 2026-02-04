@@ -44,7 +44,9 @@ Before diving into specific issues, gather baseline metrics:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "CpuUser",
+    "metrics": ["CpuUser", "CpuSystem"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -61,7 +63,9 @@ Before diving into specific issues, gather baseline metrics:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "BytesInPerSec",
+    "metrics": ["BytesInPerSec", "BytesOutPerSec"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -86,7 +90,9 @@ Compare against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "ProduceThrottleTime",
+    "metrics": ["ProduceThrottleTime", "FetchThrottleTime"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -106,7 +112,9 @@ Compare against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "NetworkProcessorAvgIdlePercent",
+    "metrics": ["NetworkProcessorAvgIdlePercent"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -126,7 +134,9 @@ Compare against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "ProduceRequestQueueTimeMsMean",
+    "metrics": ["ProduceRequestQueueTimeMsMean"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -164,7 +174,9 @@ Compare against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "CpuUser",
+    "metrics": ["CpuUser", "CpuSystem"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -183,7 +195,9 @@ Compare against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "BytesInPerSec",
+    "metrics": ["BytesInPerSec", "BytesOutPerSec"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -203,7 +217,9 @@ Compare against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "PartitionCount",
+    "metrics": ["PartitionCount", "GlobalPartitionCount"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -223,7 +239,9 @@ Compare against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "ClientConnectionCount",
+    "metrics": ["ClientConnectionCount", "ConnectionCreationRate"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -278,7 +296,9 @@ Compare against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "UnderReplicatedPartitions",
+    "metrics": ["UnderReplicatedPartitions"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -308,7 +328,9 @@ Compare against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "ReplicationBytesInPerSec",
+    "metrics": ["ReplicationBytesInPerSec", "ReplicationBytesOutPerSec"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -323,7 +345,9 @@ Compare against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "LeaderCount",
+    "metrics": ["LeaderCount"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -360,7 +384,9 @@ Compare against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "ConnectionCreationRate",
+    "metrics": ["ConnectionCreationRate", "ConnectionCloseRate"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -377,7 +403,9 @@ Compare against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metric_name": "ClientConnectionCount",
+    "metrics": ["ClientConnectionCount"],
+    "start_time": "<1-hour-ago-ISO8601>",
+    "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
@@ -387,7 +415,7 @@ Compare against instance limits:
 
 ### Step 3: Check for Connection Churn
 
-Compare `ConnectionCreationRate` and `ConnectionCloseRate`.
+The metrics from Step 1 (`ConnectionCreationRate` and `ConnectionCloseRate`) will show connection churn.
 
 **If high churn:**
 - Clients are reconnecting frequently
