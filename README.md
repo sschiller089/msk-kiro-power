@@ -16,27 +16,40 @@ Express brokers are ideal for workloads that benefit from automatic scaling and 
 
 ## What's Included
 
-- **POWER.md** - Comprehensive guide covering:
-  - Express broker best practices (sizing, CPU management, connections)
-  - Common workflows (create cluster, monitor health, update configuration)
-  - Troubleshooting guides (slow clients, replication lag, high CPU, authentication issues)
-  - MCP tools reference for AWS MSK operations
+- **POWER.md** - Main power documentation with:
+  - Express broker instance limits and thresholds
+  - Key metrics reference
+  - MCP tools quick reference
+
+- **steering/** - Detailed workflow guides:
+  - `getting-started.md` - Prerequisites, cluster discovery, initial setup
+  - `monitoring-best-practices.md` - Health monitoring, CPU thresholds, partition management
+  - `troubleshooting.md` - Diagnose slow clients, high CPU, replication lag, auth failures
 
 - **mcp.json** - AWS MSK MCP Server configuration
 
 ## Installation
 
-### Local Testing
+### From GitHub
 
 1. Open Kiro Powers UI (use command palette: "Open Powers Panel")
 2. Click "Add Custom Power"
-3. Select "Local Directory"
-4. Enter the full path to this directory: `{workspace}/powers/aws-msk-express-broker`
+3. Select "GitHub Repository"
+4. Enter: `https://github.com/sschiller089/msk-kiro-power`
 5. Click "Add"
+
+### Local Testing
+
+1. Clone this repository
+2. Open Kiro Powers UI
+3. Click "Add Custom Power"
+4. Select "Local Directory"
+5. Enter the full path to the cloned directory
+6. Click "Add"
 
 ### Configuration
 
-Before using the power, update the AWS profile placeholder in `mcp.json`:
+Before using the power, update the AWS profile in `mcp.json`:
 
 ```json
 {
@@ -55,25 +68,9 @@ Once installed, the power provides:
 - **Troubleshooting** for common issues like slow clients, replication lag, and high CPU
 - **MCP tools** for interacting with AWS MSK clusters
 
-## Included Hooks
-
-This power includes a Kiro hook for automated health monitoring:
-
-**MSK Post-Cluster Health Check** (`.kiro/hooks/msk-post-cluster-health-check.json`)
-
-Automatically prompts a health check after MSK cluster operations complete. When Kiro detects cluster creation or activation patterns in the conversation, it offers to:
-
-1. Check cluster status and metadata
-2. Verify broker endpoints are accessible
-3. Review current CPU and throughput metrics
-4. Confirm monitoring is properly configured
-
-This helps ensure new clusters are healthy before you start using them.
-
 ## Next Steps
 
-1. Test the power locally using the installation steps above
-2. Verify the documentation is clear and complete
-3. Test the MCP tools with your AWS account
-4. Share the power via GitHub repository or submit to Kiro recommended powers
+1. Install the power using the instructions above
+2. Configure your AWS profile in `mcp.json`
+3. Ask Kiro to help you monitor or troubleshoot your MSK Express Broker cluster
 
