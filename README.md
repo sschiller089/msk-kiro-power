@@ -2,18 +2,6 @@
 
 A Kiro Power for building and operating Amazon MSK Express Brokers with best practices and troubleshooting guidance.
 
-## About Express Brokers
-
-Amazon MSK Express Brokers are a newer cluster type designed for simplified operations and automatic scaling. Key characteristics:
-
-- **KRaft-based:** No ZooKeeper dependency, using Kafka's native consensus protocol
-- **Pre-configured HA:** Data distributed across 3 AZs with replication factor of 3 and min.insync.replicas of 2
-- **Automatic scaling:** Storage scales automatically based on throughput
-- **Instance types:** Use `express.m7g.*` instances (large, xlarge, 2xlarge, 4xlarge, 8xlarge, 12xlarge, 16xlarge)
-- **Simplified management:** Reduced operational overhead compared to provisioned clusters
-
-Express brokers are ideal for workloads that benefit from automatic scaling and simplified operations, while provisioned clusters offer more granular control over broker configuration.
-
 ## What's Included
 
 - **POWER.md** - Main power documentation with:
