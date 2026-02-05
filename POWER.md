@@ -10,11 +10,13 @@ author: "Stephan Schiller"
 
 ## Prerequisites
 
-Before using this power, configure your AWS profile:
+Before using this power, set your AWS profile as an environment variable:
 
-1. Open the power's `mcp.json` file
-2. Replace `YOUR_AWS_PROFILE_NAME` with your AWS profile name
-3. Save and restart the MCP server
+```bash
+export AWS_PROFILE=your-profile-name
+```
+
+Add this to your shell profile (`~/.zshrc` or `~/.bashrc`) for persistence. When Kiro first loads the power, it will prompt you to approve the `AWS_PROFILE` environment variable expansion.
 
 Required IAM permissions: `kafka:Describe*`, `kafka:List*`, `cloudwatch:GetMetricData`
 
