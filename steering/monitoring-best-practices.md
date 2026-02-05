@@ -287,6 +287,27 @@ The following metrics are only available for provisioned clusters:
 - `OfflinePartitionsCount`
 - `ZooKeeperRequestLatencyMsMean` - Express uses KRaft, not ZooKeeper
 
+### MCP Server Metric Limitations
+
+The AWS MSK MCP Server (`awslabs.aws-msk-mcp-server`) supports a subset of CloudWatch metrics. The following PER_BROKER level metrics are **not currently retrievable** via the MCP server:
+
+- `ConnectionCreationRate`, `ConnectionCloseRate`
+- `NetworkProcessorAvgIdlePercent`, `RequestHandlerAvgIdlePercent`
+- `ProduceThrottleTime`, `FetchThrottleTime`
+- `ProduceRequestQueueTimeMsMean`
+- `ReplicationBytesInPerSec`, `ReplicationBytesOutPerSec`
+- `IAMNumberOfConnectionRequests`, `IAMTooManyConnections`
+
+**Workaround:** Access these metrics directly via the AWS CloudWatch console or AWS CLI:
+```bash
+aws cloudwatch get-metric-data \
+  --metric-data-queries '[{"Id":"m1","MetricStat":{"Metric":{"Namespace":"AWS/Kafka","MetricName":"ConnectionCreationRate","Dimensions":[{"Name":"Cluster Name","Value":"your-cluster"},{"Name":"Broker ID","Value":"1"}]},"Period":300,"Stat":"Average"}}]' \
+  --start-time 2026-02-05T05:00:00Z \
+  --end-time 2026-02-05T06:00:00Z
+```
+
+For MCP server documentation, see [AWS MSK MCP Server](https://awslabs.github.io/mcp/servers/aws-msk-mcp-server).
+
 ### Setting Monitoring Level
 
 **Action:** Use `update_monitoring` tool
