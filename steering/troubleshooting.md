@@ -23,8 +23,10 @@ Before diving into specific issues, gather baseline metrics:
 1. CPU: `CpuUser` + `CpuSystem`
 2. Throughput: `BytesInPerSec`, `BytesOutPerSec`
 3. Partitions: `GlobalPartitionCount`, `PartitionCount`
-4. Replication: `UnderReplicatedPartitions`
+4. Leaders: `LeaderCount` (check distribution)
 5. Connections: `ClientConnectionCount`
+
+**Note:** Some metrics require PER_BROKER monitoring level. See `monitoring-best-practices.md` for the full metrics reference.
 
 ---
 
@@ -83,6 +85,8 @@ Compare against instance limits:
 
 ### Step 3: Check for Throttling
 
+**Note:** Requires PER_BROKER monitoring level. Metrics only appear after throttling occurs.
+
 **Action:** Use `get_cluster_telemetry` tool
 ```json
 {
@@ -105,6 +109,8 @@ Compare against instance limits:
 
 ### Step 4: Check Network Processor
 
+**Note:** Requires PER_BROKER monitoring level.
+
 **Action:** Use `get_cluster_telemetry` tool
 ```json
 {
@@ -126,6 +132,8 @@ Compare against instance limits:
 - Scale cluster
 
 ### Step 5: Check Request Queue Time
+
+**Note:** Requires PER_BROKER monitoring level.
 
 **Action:** Use `get_cluster_telemetry` tool
 ```json
@@ -283,11 +291,13 @@ Compare against instance limits:
 ## Troubleshooting Workflow 3: Replication Lag
 
 **Symptoms:**
-- UnderReplicatedPartitions > 0
+- Leader distribution imbalance
 - Data durability concerns
 - Follower replicas behind
 
-### Step 1: Check Under-Replicated Partitions
+**Note:** `UnderReplicatedPartitions` is not available for Express brokers. Monitor `LeaderCount` distribution and `ReplicationBytesInPerSec`/`ReplicationBytesOutPerSec` instead.
+
+### Step 1: Check Leader Distribution
 
 **Action:** Use `get_cluster_telemetry` tool
 ```json
@@ -296,13 +306,17 @@ Compare against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metrics": ["UnderReplicatedPartitions"],
+    "metrics": ["LeaderCount"],
     "start_time": "<1-hour-ago-ISO8601>",
     "end_time": "<now-ISO8601>",
     "period": 300
   }
 }
 ```
+
+**Evaluation:**
+- Leaders should be evenly distributed across brokers
+- Significant imbalance indicates potential replication issues
 
 ### Step 2: Check Broker Health
 
@@ -321,6 +335,8 @@ Compare against instance limits:
 
 ### Step 3: Check Replication Throughput
 
+**Note:** Requires PER_BROKER monitoring level.
+
 **Action:** Use `get_cluster_telemetry` tool
 ```json
 {
@@ -335,27 +351,6 @@ Compare against instance limits:
   }
 }
 ```
-
-### Step 4: Check Leader Distribution
-
-**Action:** Use `get_cluster_telemetry` tool
-```json
-{
-  "region": "us-east-1",
-  "action": "metrics",
-  "cluster_arn": "<your-cluster-arn>",
-  "kwargs": {
-    "metrics": ["LeaderCount"],
-    "start_time": "<1-hour-ago-ISO8601>",
-    "end_time": "<now-ISO8601>",
-    "period": 300
-  }
-}
-```
-
-**If uneven:**
-- Trigger preferred leader election
-- Reassign partitions to balance
 
 ### Resolution Summary for Replication Lag
 
@@ -376,6 +371,8 @@ Compare against instance limits:
 - Connection failures
 
 ### Step 1: Check Connection Rate
+
+**Note:** `ConnectionCreationRate` and `ConnectionCloseRate` require PER_BROKER monitoring level.
 
 **Action:** Use `get_cluster_telemetry` tool
 ```json
@@ -481,13 +478,18 @@ This prevents premature rebalancing during consumer restarts.
 
 ## Quick Reference: Metrics to Check First
 
-| Issue | Primary Metrics |
-|-------|-----------------|
-| Slow clients | CpuUser, BytesInPerSec, ProduceThrottleTime |
-| High CPU | CpuUser, CpuSystem, BytesInPerSec, PartitionCount |
-| Replication lag | UnderReplicatedPartitions, ReplicationBytesInPerSec |
-| Auth failures | ClientConnectionCount, ConnectionCreationRate |
-| Consumer issues | MaxOffsetLag, EstimatedMaxTimeLag |
+| Issue | Primary Metrics | Monitoring Level |
+|-------|-----------------|------------------|
+| Slow clients | CpuUser, BytesInPerSec | DEFAULT |
+| Slow clients (detailed) | ProduceThrottleTime, NetworkProcessorAvgIdlePercent | PER_BROKER |
+| High CPU | CpuUser, CpuSystem, BytesInPerSec, PartitionCount | DEFAULT |
+| Replication health | LeaderCount | DEFAULT |
+| Replication (detailed) | ReplicationBytesInPerSec | PER_BROKER |
+| Auth failures | ClientConnectionCount | DEFAULT |
+| Auth failures (detailed) | ConnectionCreationRate, IAMTooManyConnections | PER_BROKER |
+| Consumer issues | MaxOffsetLag, EstimatedMaxTimeLag | DEFAULT |
+
+**Note:** `UnderReplicatedPartitions` is not available for Express brokers. Use `LeaderCount` distribution instead.
 
 ## When to Escalate
 

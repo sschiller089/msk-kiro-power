@@ -134,7 +134,9 @@ Compare per-broker throughput against instance limits:
 
 ## Step 5: Check Replication Health
 
-**Target: UnderReplicatedPartitions = 0**
+**Target: Verify replication is healthy via LeaderCount distribution**
+
+**Note:** `UnderReplicatedPartitions` is not available for Express brokers. Instead, monitor `LeaderCount` distribution and `ReplicationBytesInPerSec`/`ReplicationBytesOutPerSec` (requires PER_BROKER monitoring level).
 
 **Action:** Use `get_cluster_telemetry` tool
 ```json
@@ -143,7 +145,7 @@ Compare per-broker throughput against instance limits:
   "action": "metrics",
   "cluster_arn": "<your-cluster-arn>",
   "kwargs": {
-    "metrics": ["UnderReplicatedPartitions"],
+    "metrics": ["LeaderCount"],
     "start_time": "<1-hour-ago-ISO8601>",
     "end_time": "<now-ISO8601>",
     "period": 300
@@ -152,8 +154,8 @@ Compare per-broker throughput against instance limits:
 ```
 
 **Evaluation:**
-- ✅ **Healthy:** 0 under-replicated partitions
-- ❌ **Unhealthy:** Any value > 0 requires investigation
+- ✅ **Healthy:** Leaders evenly distributed across brokers
+- ⚠️ **Warning:** Significant imbalance in leader distribution
 
 ## Step 6: Check Consumer Lag
 
@@ -187,18 +189,121 @@ Run through this checklist regularly:
 - [ ] Partition count within limits
 - [ ] Even partition distribution across brokers
 - [ ] IAM connections < 3000 per broker
-- [ ] UnderReplicatedPartitions = 0
+- [ ] Leader count evenly distributed
 - [ ] Consumer lag within acceptable bounds
-- [ ] No throttling (ProduceThrottleTime, FetchThrottleTime = 0)
+- [ ] No throttling (ProduceThrottleTime, FetchThrottleTime = 0) - requires PER_BROKER level
 
 ## Recommended CloudWatch Alarms
 
 Set up alarms for:
 1. **CPU utilization > 60%** - Warning threshold
 2. **CPU utilization > 80%** - Critical threshold
-3. **UnderReplicatedPartitions > 0** - Immediate investigation
+3. **LeaderCount imbalance > 10%** - Partition distribution issue
 4. **ClientConnectionCount > 2500** - Connection pressure
 5. **MaxOffsetLag > [your threshold]** - Consumer lag
+
+---
+
+## Express Broker Metrics Reference
+
+Express brokers have different metrics available compared to provisioned clusters. Metrics availability depends on your monitoring level setting.
+
+### Monitoring Levels
+
+| Level | Cost | Description |
+|-------|------|-------------|
+| DEFAULT | Free | Basic cluster and broker metrics |
+| PER_BROKER | Paid | Adds detailed broker performance metrics |
+| PER_TOPIC_PER_BROKER | Paid | Adds per-topic breakdown |
+| PER_TOPIC_PER_PARTITION | Paid | Adds per-partition breakdown |
+
+### DEFAULT Level Metrics (Free)
+
+**Performance:**
+- `CpuUser`, `CpuSystem`, `CpuIdle` - CPU utilization
+- `BytesInPerSec`, `BytesOutPerSec` - Throughput
+- `MessagesInPerSec` - Message rate
+- `ProduceTotalTimeMsMean` - Producer latency
+
+**Cluster Health:**
+- `GlobalPartitionCount`, `PartitionCount` - Partition counts
+- `GlobalTopicCount` - Topic count
+- `LeaderCount` - Leader distribution
+- `ActiveControllerCount` - Controller status
+- `StorageUsed` - Storage consumption
+
+**Connections:**
+- `ClientConnectionCount` - Authenticated connections
+- `ConnectionCount` - All connections
+
+**Consumer:**
+- `MaxOffsetLag`, `SumOffsetLag` - Offset lag
+- `EstimatedMaxTimeLag` - Time lag estimate
+
+**Memory:**
+- `MemoryFree`, `MemoryUsed`, `MemoryBuffered`, `MemoryCached`
+
+**Network:**
+- `NetworkRxPackets`, `NetworkTxPackets`
+- `NetworkRxErrors`, `NetworkTxErrors`
+- `NetworkRxDropped`, `NetworkTxDropped`
+
+### PER_BROKER Level Metrics (Paid)
+
+**Connection Details:**
+- `ConnectionCreationRate` - New connections per second
+- `ConnectionCloseRate` - Closed connections per second
+
+**IAM Authentication:**
+- `IAMNumberOfConnectionRequests` - IAM auth requests
+- `IAMTooManyConnections` - Throttle limit exceeded count
+
+**Throttling:**
+- `ProduceThrottleTime`, `FetchThrottleTime` - Throttle duration
+- `ProduceThrottleByteRate`, `FetchThrottleByteRate` - Throttled bytes
+- `ProduceThrottleQueueSize`, `FetchThrottleQueueSize` - Queue sizes
+- `RequestThrottleTime`, `RequestThrottleQueueSize`
+
+**Request Timing:**
+- `ProduceRequestQueueTimeMsMean` - Producer queue time
+- `ProduceLocalTimeMsMean` - Producer processing time
+- `ProduceResponseQueueTimeMsMean`, `ProduceResponseSendTimeMsMean`
+- `FetchConsumerTotalTimeMsMean`, `FetchConsumerLocalTimeMsMean`
+- `FetchConsumerRequestQueueTimeMsMean`, `FetchConsumerResponseQueueTimeMsMean`
+- `FetchFollowerTotalTimeMsMean`, `FetchFollowerLocalTimeMsMean`
+
+**Replication:**
+- `ReplicationBytesInPerSec`, `ReplicationBytesOutPerSec`
+
+**System:**
+- `NetworkProcessorAvgIdlePercent` - Network thread utilization
+- `RequestHandlerAvgIdlePercent` - Request handler utilization
+- `TrafficBytes`, `TcpConnections`
+
+### Metrics NOT Available for Express Brokers
+
+The following metrics are only available for provisioned clusters:
+- `UnderReplicatedPartitions` - Use `LeaderCount` distribution instead
+- `OfflinePartitionsCount`
+- `ZooKeeperRequestLatencyMsMean` - Express uses KRaft, not ZooKeeper
+
+### Setting Monitoring Level
+
+**Action:** Use `update_monitoring` tool
+```json
+{
+  "region": "us-east-1",
+  "cluster_arn": "<your-cluster-arn>",
+  "current_version": "<cluster-version>",
+  "enhanced_monitoring": "PER_BROKER"
+}
+```
+
+**Note:** Higher monitoring levels incur CloudWatch costs. See [CloudWatch pricing](https://aws.amazon.com/cloudwatch/pricing/).
+
+For the complete metrics reference, see [AWS MSK Express Broker Metrics Documentation](https://docs.aws.amazon.com/msk/latest/developerguide/metrics-details-express.html).
+
+---
 
 ## Next Steps
 
